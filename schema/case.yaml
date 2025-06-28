@@ -16,7 +16,28 @@ servers: []
 tags:
   - name: Default
     description: ''
-paths: {}
+paths:
+  /case/clearing:
+    post:
+      description: ''
+      operationId: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: OK
+    parameters:
+      - in: query
+        name: ''
+        description: ''
+        schema:
+          type: string
 components:
-  schemas: {}
+  schemas:
+    case:
+      type: integer
+      description: caseId
+    cluster:
+      type: string
+      description: cluster
   securitySchemes: {}
