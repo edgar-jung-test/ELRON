@@ -26,18 +26,22 @@ paths:
       responses:
         '200':
           description: OK
-    parameters:
-      - in: query
-        name: ''
-        description: ''
-        schema:
-          type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/case'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/cluster'
+    parameters: []
 components:
   schemas:
-    case:
-      type: integer
-      description: caseId
     cluster:
       type: string
       description: cluster
+    case:
+      type: integer
+      description: caseId
   securitySchemes: {}
