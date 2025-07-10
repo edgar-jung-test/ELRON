@@ -1,9 +1,22 @@
 type: object
 properties:
-  field0:
+  Runtime:
     type: string
-  field1:
-    type: number
+    description: Type of System
+    enum:
+      - Development
+      - Quality
+      - Production
+    examples:
+      - Development
+  EDIVersion:
+    type: string
+    description: Version of Interface, consulted by EDI@ENERGY
+    pattern: \d\.\d\.\d
+  Module:
+    type: string
+    description: Hint, which Module is affected
 required:
-  - field0
-  - field1
+  - Runtime
+  - EDIVersion
+  - Module
