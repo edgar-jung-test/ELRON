@@ -15,5 +15,4 @@ properties:
 required:
   - Status
   - Message
-  - Reference
 description: Entire set of control and content
