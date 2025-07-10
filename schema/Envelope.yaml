@@ -14,5 +14,4 @@ properties:
     description: Real Data to transport
 required:
   - Status
-  - Backend
 description: Entire set of control and content
