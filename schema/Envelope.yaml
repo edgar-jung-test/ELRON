@@ -1,9 +1,20 @@
 type: object
 properties:
-  field0:
-    type: string
-  field1:
-    type: number
+  Status:
+    $ref: Status.yaml
+  Message:
+    $ref: Message.yaml
+  Reference:
+    $ref: Reference.yaml
+  Backend:
+    $ref: Backend.yaml
+  Data:
+    type: object
+    properties: {}
+    description: Real Data to transport
 required:
-  - field0
-  - field1
+  - Status
+  - Message
+  - Reference
+  - Backend
+  - Data
