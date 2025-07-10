@@ -1,2 +1,4 @@
 type: string
 description: Message in Envelope Header
+examples:
+  - MaLo did not match
