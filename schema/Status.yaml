@@ -1,9 +1,8 @@
-type: object
-properties:
-  field0:
-    type: string
-  field1:
-    type: number
-required:
-  - field0
-  - field1
+type: string
+enum:
+  - ERROR
+  - WARNING
+  - OK
+description: >-
+  Even if we've got 2X from API, there might be a nested Error to handle at
+  client
