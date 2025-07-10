@@ -6,3 +6,5 @@ enum:
 description: >-
   Even if we've got 2X from API, there might be a nested Error to handle at
   client
+examples:
+  - ERROR
