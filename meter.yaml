@@ -17,11 +17,34 @@ info:
 externalDocs:
   description: Find out more about spec
   url: ''
-servers: []
+servers:
+  - url: https://makohub.de
+    description: ''
+    variables: {}
 tags:
   - name: Default
     description: ''
-paths: {}
+paths:
+  /meter/upload:
+    post:
+      summary: Post Image as String
+      description: ''
+      operationId: ''
+      tags: []
+      parameters: []
+      responses:
+        '200':
+          description: OK
+      servers:
+        - url: ''
+          description: ''
+          variables: {}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              description: image
 components:
   schemas: {}
   securitySchemes: {}
