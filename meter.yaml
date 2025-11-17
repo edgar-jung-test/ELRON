@@ -1,50 +1,68 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
-  title: AI Meter Image Analysis
-  description: >-
-    Upload a meter image to AI. AI processes information out of the picture an
-    sends back the meter serial code and meter reading. This can be easly used
-    for automated integration in Backend systems like SAP, Wilken, Schleupen or
-    others
-  termsOfService: ''
-  contact:
-    email: edgar.jung@elropro.com
-    name: Edgar Jung
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Meter Reading API
   version: 1.0.0
-externalDocs:
-  description: Find out more about spec
-  url: ''
+  description: >-
+    Reads a stringifyied image and AI translates image to serial, meterreading
+    and possiblibly obis.
+  contact:
+    name: Edgar Jung
+    email: edgar.jung@elropro.com
 servers:
   - url: https://makohub.de
-    description: ''
-    variables: {}
-tags:
-  - name: Default
-    description: ''
+    description: Productive Server
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MeterUploadRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          description: Base64-encoded image or raw string content
+      required:
+        - image
+    MeterUploadResponse:
+      type: object
+      properties:
+        device:
+          type: string
+          description: 'Herstellergerätenummer '
+        obis:
+          type: string
+          description: full obis code
+        scanObisRead:
+          type: string
+        reading:
+          type: string
+        serial:
+          type: string
+      required:
+        - device
+        - obis
+        - scanObisRead
+        - reading
+        - serial
 paths:
   /meter/upload:
     post:
-      summary: Post Image as String
-      description: ''
-      operationId: ''
-      tags: []
-      parameters: []
-      responses:
-        '200':
-          description: OK
-      servers:
-        - url: ''
-          description: ''
-          variables: {}
+      summary: Upload a meter image for recognition
+      security:
+        - BearerAuth: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: string
-              description: image
-components:
-  schemas: {}
-  securitySchemes: {}
+              $ref: '#/components/schemas/MeterUploadRequest'
+      responses:
+        '200':
+          description: Successful meter recognition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterUploadResponse'
