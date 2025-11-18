@@ -24,6 +24,8 @@ components:
         image:
           type: string
           description: Base64-encoded image or raw string content
+          examples:
+            - /9j/4AAQSkZJRgABAQ...
       required:
         - image
     MeterUploadResponse:
