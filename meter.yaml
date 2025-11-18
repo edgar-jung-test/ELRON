@@ -31,22 +31,32 @@ components:
       properties:
         device:
           type: string
-          description: 'Herstellergerätenummer '
+          description: Type of Device/Input
+          enum:
+            - digital
+            - analog
+            - readingCard
+          example: digital
         obis:
           type: string
-          description: full obis code
+          description: full obis code, matched with edi@energy code list
+          pattern: ^\d+-\d+:\d+(\.\d+(\.\d+(\*\d+)?)?)?$
         scanObisRead:
           type: string
+          description: Obis on the device, if there is any
         reading:
           type: string
+          description: Reading from the meter device. May have leading zeroes
         serial:
           type: string
+          description: Manuafacturer Serial Number
       required:
         - device
         - obis
         - scanObisRead
         - reading
         - serial
+  headers: {}
 paths:
   /meter/upload:
     post:
@@ -66,3 +76,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeterUploadResponse'
+      servers:
+        - url: https://makohub.de
+          description: productive Server
+          variables: {}
