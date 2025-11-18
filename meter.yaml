@@ -85,6 +85,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeterUploadResponse'
+        '500':
+          description: Error with Text, if request breaks
+          content: {}
+          headers: {}
+        '504':
+          description: >-
+            AI recognition takes too long. Make sure to set your reqest timeout
+            to 120 seconds
+          content: {}
+          headers: {}
       servers:
         - url: https://makohub.de
           description: productive Server
