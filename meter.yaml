@@ -41,15 +41,25 @@ components:
           type: string
           description: full obis code, matched with edi@energy code list
           pattern: ^\d+-\d+:\d+(\.\d+(\.\d+(\*\d+)?)?)?$
+          examples:
+            - 7-20:3.0.0
         scanObisRead:
           type: string
           description: Obis on the device, if there is any
+          examples:
+            - '180'
+            - 1.8.0
         reading:
           type: string
           description: Reading from the meter device. May have leading zeroes
+          default: '0'
+          examples:
+            - '003942'
         serial:
           type: string
           description: Manuafacturer Serial Number
+          examples:
+            - 7ELS2535764232
       required:
         - device
         - obis
