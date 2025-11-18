@@ -43,7 +43,8 @@ components:
           description: full obis code, matched with edi@energy code list
           examples:
             - 7-20:3.0.0
-          example: 7-20:3:0.0
+          enum:
+            - ^\d+-\d+:\d+(\.\d+(\.\d+(\*\d+)?)?)?$
         scanObisRead:
           type: string
           description: Obis on the device, if there is any
