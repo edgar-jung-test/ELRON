@@ -40,7 +40,6 @@ components:
         obis:
           type: string
           description: full obis code, matched with edi@energy code list
-          pattern: ^\d+-\d+:\d+(\.\d+(\.\d+(\*\d+)?)?)?$
           examples:
             - 7-20:3.0.0
         scanObisRead:
