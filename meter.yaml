@@ -2,9 +2,7 @@ openapi: 3.0.0
 info:
   title: Meter Reading API
   version: 1.0.0
-  description: >-
-    Reads a stringifyied image and AI translates image to serial, meterreading
-    and possiblibly obis.
+  description: "Reads a stringifyied image and AI translates image to serial, meterreading and possiblibly obis.\r\nYou may use productive environment https://makohub.de"
   contact:
     name: Edgar Jung
     email: edgar.jung@elropro.com
@@ -17,9 +15,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    securitySchema-1:
-      type: http
-      scheme: basic
   schemas:
     MeterUploadRequest:
       type: object
@@ -92,11 +87,7 @@ components:
       description: ''
       schema:
         type: string
-  responses:
-    resBody-1:
-      description: ''
-      headers: {}
-      content: {}
+  responses: {}
   parameters: {}
 paths:
   /meter/upload:
