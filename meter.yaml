@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Meter Reading API
   version: 1.0.0
-  description: "Reads a stringifyied image and AI translates image to serial, meterreading and possiblibly obis.\r\nYou may use productive environment https://makohub.de"
+  description: "Reads a stringifyied image and AI translates image to serial, meterreading and possiblibly obis.\r\nYou may use productive environment **https://makohub.de**"
   contact:
     name: Edgar Jung
     email: edgar.jung@elropro.com
