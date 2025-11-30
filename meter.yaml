@@ -72,15 +72,11 @@ components:
             - success
             - error
         meterreadscore:
-          type: string
-          description: null
-          examples:
-            - 0.999737
+          type: number
+          description: Score, the meterreading is done by AI . 1.0 highest = 100%
         meternumberscore:
-          type: string
-          description: null
-          examples:
-            - 0.98763
+          type: number
+          description: Score, the device number is properly detected, highest 1.0 = 100%
       required:
         - device
         - obis
