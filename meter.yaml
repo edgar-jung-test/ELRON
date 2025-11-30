@@ -11,8 +11,8 @@ servers:
     description: Productive Server
     variables:
       variable1:
-        default: var1
-        description: dest
+        default: ''
+        description: ''
         enum: []
 components:
   securitySchemes:
