@@ -119,7 +119,3 @@ paths:
             to 120 seconds
           content: {}
           headers: {}
-      servers:
-        - url: https://makohub.de
-          description: productive Server
-          variables: {}
