@@ -90,7 +90,12 @@ components:
         - status
         - meterreadscore
         - meternumberscore
-  headers: {}
+  headers:
+    header-1:
+      required: false
+      description: ''
+      schema:
+        type: string
   responses:
     resBody-1:
       description: ''
