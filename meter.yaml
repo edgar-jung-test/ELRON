@@ -97,6 +97,7 @@ components:
       description: ''
       headers: {}
       content: {}
+  parameters: {}
 paths:
   /meter/upload:
     post:
