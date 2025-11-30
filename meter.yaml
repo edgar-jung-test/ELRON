@@ -17,6 +17,9 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    securitySchema-1:
+      type: http
+      scheme: basic
   schemas:
     MeterUploadRequest:
       type: object
@@ -62,13 +65,37 @@ components:
           description: Manuafacturer Serial Number
           examples:
             - 7ELS2535764232
+        status:
+          type: string
+          description: null
+          examples:
+            - success
+            - error
+        meterreadscore:
+          type: string
+          description: null
+          examples:
+            - 0.999737
+        meternumberscore:
+          type: string
+          description: null
+          examples:
+            - 0.98763
       required:
         - device
         - obis
         - scanObisRead
         - reading
         - serial
+        - status
+        - meterreadscore
+        - meternumberscore
   headers: {}
+  responses:
+    resBody-1:
+      description: ''
+      headers: {}
+      content: {}
 paths:
   /meter/upload:
     post:
