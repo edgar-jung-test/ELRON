@@ -67,10 +67,10 @@ components:
             - 7ELS2535764232
         status:
           type: string
-          description: null
-          examples:
+          enum:
             - success
             - error
+          description: Status of operation
         meterreadscore:
           type: number
           description: Score, the meterreading is done by AI . 1.0 highest = 100%
