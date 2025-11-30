@@ -9,11 +9,7 @@ info:
 servers:
   - url: https://makohub.de
     description: Productive Server
-    variables:
-      variable1:
-        default: ''
-        description: ''
-        enum: []
+    variables: {}
 components:
   securitySchemes:
     BearerAuth:
