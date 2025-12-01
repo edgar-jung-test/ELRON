@@ -25,6 +25,7 @@ components:
           description: Base64-encoded image or raw string content
           examples:
             - /9j/4AAQSkZJRgABAQ...
+          example: /9j/4AAEDOMGKRfjAIG....
       required:
         - image
     MeterUploadResponse:
@@ -62,6 +63,7 @@ components:
           description: Manuafacturer Serial Number
           examples:
             - 7ELS2535764232
+          example: 1ISK298302994
         status:
           type: string
           enum:
@@ -72,6 +74,9 @@ components:
         meterreadscore:
           type: number
           description: Score, the meterreading is done by AI . 1.0 highest = 100%
+          example: 0.99334
+          maximum: 1
+          minimum: 0
         meternumberscore:
           type: number
           description: Score, the device number is properly detected, highest 1.0 = 100%
