@@ -112,6 +112,7 @@ paths:
   /meter/upload:
     post:
       summary: Upload a meter image for recognition
+      x-timeout: 120000          # 12 Sekunden
       security:
         - BearerAuth: []
       requestBody:
