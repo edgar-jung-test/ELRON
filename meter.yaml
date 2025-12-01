@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >-
     Reads a stringifyed image and AI translates image to serial, meterreading
-    and possiblibly obis.\r\nYou may use productive environment
+    and possiblibly obis. You may use productive environment
     **https://makohub.de**. #token#. Please set **Timeout** at least to **120
     seconds** as the recognition needs time - and we have a lot of detection
     requests at the same time.
@@ -112,7 +112,7 @@ paths:
   /meter/upload:
     post:
       summary: Upload a meter image for recognition
-      x-timeout: 120000          # 12 Sekunden
+      x-timeout: 120000
       security:
         - BearerAuth: []
       requestBody:
