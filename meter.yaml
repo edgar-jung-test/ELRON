@@ -2,7 +2,12 @@ openapi: 3.0.0
 info:
   title: Meter Reading API
   version: 1.0.0
-  description: 
+  description: >-
+    Reads a stringifyied image and AI translates image to serial, meterreading
+    and possiblibly obis.\r\nYou may use productive environment
+    **https://makohub.de**. #token#. Please set **Timeout** at least to **120
+    seconds** as the recognition needs time - and we have a lot of detection
+    requests at the same time.
   contact:
     name: Edgar Jung
     email: edgar.jung@elropro.com
@@ -40,7 +45,7 @@ components:
             - readingCard
           examples:
             - digital
-          example: digital  
+          example: digital
         obis:
           type: string
           description: full obis code, matched with edi@energy code list
@@ -60,7 +65,7 @@ components:
           default: '0'
           examples:
             - '003942'
-          example:  04864
+          example: 4864
         serial:
           type: string
           description: Manuafacturer Serial Number
