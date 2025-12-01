@@ -80,6 +80,9 @@ components:
         meternumberscore:
           type: number
           description: Score, the device number is properly detected, highest 1.0 = 100%
+          example: 0.99984
+          maximum: 1
+          minimum: 0
       required:
         - device
         - obis
