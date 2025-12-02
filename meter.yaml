@@ -100,6 +100,21 @@ components:
         - status
         - meterreadscore
         - meternumberscore
+    MeterError:
+      type: object
+      properties:
+        code:
+          type: number
+          description: Errorcode
+        message:
+          type: string
+          description: ErrorDescription
+        success:
+          type: boolean
+      required:
+        - code
+        - message
+        - success
   headers:
     header-1:
       required: false
@@ -136,5 +151,8 @@ paths:
           description: >-
             AI recognition takes too long. Make sure to set your reqest timeout
             to 120 seconds
-          content: {}
           headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterError'
