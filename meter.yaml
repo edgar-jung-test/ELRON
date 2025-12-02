@@ -106,11 +106,14 @@ components:
         code:
           type: number
           description: Errorcode
+          example: 504
         message:
           type: string
           description: ErrorDescription
+          example: timeout from AI machine - try again later - too busy
         success:
           type: boolean
+          default: false
       required:
         - code
         - message
