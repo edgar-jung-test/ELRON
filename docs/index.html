@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ELRON – Issue Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; }
+    header { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input { padding: 8px 10px; min-width: 260px; }
+    table { width:100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 10px; vertical-align: top; }
+    th { text-align:left; position: sticky; top:0; background: #fff; }
+    .pill { display:inline-block; padding:2px 8px; border:1px solid #ccc; border-radius: 999px; margin: 2px 6px 0 0; font-size: 12px; }
+    .muted { color:#666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0;">ELRON – Issues</h1>
+    <input id="q" placeholder="Filter (z.B. Backend.yaml, bug, assignee:name) …" />
+    <span class="muted" id="meta"></span>
+  </header>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Titel</th>
+        <th>Labels</th>
+        <th>Erstellt</th>
+        <th>Aktualisiert</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+<script>
+const OWNER = "edgar-jung-test";
+const REPO  = "ELRON";
+// Optional: voreingestellter Filter, z.B. nur Issues, die "Backend.yaml" erwähnen:
+const DEFAULT_FILTER = "Backend.yaml";
+
+// Öffentliche Repos: kein Token nötig. (Rate-Limit ist dann kleiner.)
+// Für private Repos bräuchtest du einen sicheren Proxy (nicht Token im Frontend!).
+const API = `https://api.github.com/repos/${OWNER}/${REPO}/issues?state=all&per_page=100&sort=updated&direction=desc`;
+
+const fmt = (iso) => new Date(iso).toLocaleString("de-DE", { dateStyle:"medium", timeStyle:"short" });
+
+function issueMatches(issue, query) {
+  if (!query) return true;
+  const q = query.toLowerCase().trim();
+
+  // kleine "Qualifiers" light:
+  // label:bug   assignee:login
+  const parts = q.split(/\s+/);
+  for (const p of parts) {
+    if (p.startsWith("label:")) {
+      const want = p.slice(6);
+      const labels = issue.labels.map(l => (l.name||"").toLowerCase());
+      if (!labels.includes(want)) return false;
+      continue;
+    }
+    if (p.startsWith("assignee:")) {
+      const want = p.slice(9);
+      const assignees = (issue.assignees||[]).map(a => (a.login||"").toLowerCase());
+      if (!assignees.includes(want)) return false;
+      continue;
+    }
+    // normaler Textfilter (Titel + Body)
+    const hay = ((issue.title||"") + "\n" + (issue.body||"")).toLowerCase();
+    if (!hay.includes(p)) return false;
+  }
+  return true;
+}
+
+function render(issues, query) {
+  const tbody = document.getElementById("rows");
+  tbody.innerHTML = "";
+
+  const filtered = issues.filter(i => issueMatches(i, query))
+    // PRs rausfiltern (GitHub liefert PRs auch im issues-endpoint)
+    .filter(i => !i.pull_request);
+
+  document.getElementById("meta").textContent =
+    `${filtered.length} / ${issues.filter(i=>!i.pull_request).length} Issues`;
+
+  for (const i of filtered) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i.number}</td>
+      <td>
+        <div><strong>${escapeHtml(i.title)}</strong></div>
+        <div class="muted">${escapeHtml((i.user && i.user.login) ? "von " + i.user.login : "")}</div>
+      </td>
+      <td>${(i.labels||[]).map(l => `<span class="pill">${escapeHtml(l.name||"")}</span>`).join("")}</td>
+      <td>${fmt(i.created_at)}</td>
+      <td>${fmt(i.updated_at)}</td>
+      <td><a href="${i.html_url}" target="_blank" rel="noreferrer">öffnen</a></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function escapeHtml(s) {
+  return (s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+async function loadIssues() {
+  const res = await fetch(API, {
+    headers: {
+      "Accept": "application/vnd.github+json"
+    }
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`GitHub API Fehler (${res.status}): ${txt}`);
+  }
+  return await res.json();
+}
+
+(async function main() {
+  const q = document.getElementById("q");
+  q.value = DEFAULT_FILTER;
+
+  try {
+    const issues = await loadIssues();
+    render(issues, q.value);
+    q.addEventListener("input", () => render(issues, q.value));
+  } catch (e) {
+    document.getElementById("meta").textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>
