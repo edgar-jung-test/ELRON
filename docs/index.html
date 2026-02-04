@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ELRON – Issue Dashboard</title>
-
-  <!-- YAML Parser -->
-  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <title>ELRON – GitHub Issues</title>
 
   <style>
     :root { color-scheme: light dark; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
     h1 { margin: 0 0 12px 0; }
     .bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin: 12px 0 18px; }
-    .bar input, .bar select, .bar button {
+    .bar input, .bar select, .bar button, .bar label {
       font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid #8886; background: transparent;
     }
+    .bar label { border: none; padding: 0; display:flex; gap:8px; align-items:center; }
     .hint { opacity: .8; font-size: 0.95rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 10px 10px; border-bottom: 1px solid #8884; vertical-align: top; }
@@ -31,28 +29,38 @@
 </head>
 
 <body>
-  <h1>ELRON – Issues</h1>
+  <h1>ELRON – GitHub Issues</h1>
 
   <div class="bar">
-    <input id="q" type="search" placeholder="Suchen (Titel, YAML, Dateiname, Label…)" style="min-width: 260px;">
+    <input id="q" type="search" placeholder="Suchen (Titel, #Nr, Label, Autor…)" style="min-width: 280px;">
+    <select id="state">
+      <option value="all">Alle (offen + geschlossen)</option>
+      <option value="open">Nur offen</option>
+      <option value="closed">Nur geschlossen</option>
+    </select>
     <select id="labels">
       <option value="">Alle Labels</option>
     </select>
+    <label class="hint">
+      <input id="includePRs" type="checkbox" />
+      PRs einblenden
+    </label>
     <button id="reload">Neu laden</button>
     <span class="hint right" id="status"></span>
   </div>
 
   <div id="msg"></div>
 
-  <table id="tbl" aria-label="Issue Tabelle">
+  <table id="tbl" aria-label="Issues Tabelle">
     <thead>
       <tr>
+        <th data-key="number"># <span class="sort" id="sort-number"></span></th>
         <th data-key="title">Titel <span class="sort" id="sort-title"></span></th>
-        <th data-key="yamlName">YAML (Klarname) <span class="sort" id="sort-yamlName"></span></th>
-        <th data-key="yamlFile">YAML-Datei <span class="sort" id="sort-yamlFile"></span></th>
+        <th data-key="state">Status <span class="sort" id="sort-state"></span></th>
         <th data-key="labelsText">Labels <span class="sort" id="sort-labelsText"></span></th>
-        <th data-key="created">Erstellt <span class="sort" id="sort-created"></span></th>
-        <th data-key="updated">Aktualisiert <span class="sort" id="sort-updated"></span></th>
+        <th data-key="user">Autor <span class="sort" id="sort-user"></span></th>
+        <th data-key="created_at">Erstellt <span class="sort" id="sort-created_at"></span></th>
+        <th data-key="updated_at">Aktualisiert <span class="sort" id="sort-updated_at"></span></th>
         <th>Link</th>
       </tr>
     </thead>
@@ -65,30 +73,11 @@
  */
 const OWNER = "edgar-jung-test";
 const REPO  = "ELRON";
-const BRANCH = "main";       // ggf. "master"
-const YAML_DIR = "issues";   // Ordner mit den .yaml Dateien
 
 /**
  * === HELPERS ===
  */
 const $ = (id) => document.getElementById(id);
-
-function yamlKlarname(pathOrFilename) {
-  const base = (pathOrFilename || "").split("/").pop() || "";
-  const noExt = base.replace(/\.(ya?ml)$/i, "");
-  return noExt.replace(/[_-]+/g, " ").trim();
-}
-
-function titleCase(s) {
-  return (s || "").replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
-}
-
-function safeDate(d) {
-  if (!d) return "";
-  const dt = new Date(d);
-  if (Number.isNaN(dt.getTime())) return String(d);
-  return dt.toISOString().slice(0, 10);
-}
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -99,99 +88,114 @@ function escapeHtml(str) {
     .replaceAll("'","&#039;");
 }
 
-function uniq(arr) {
-  return [...new Set(arr)];
+function uniq(arr) { return [...new Set(arr)]; }
+
+function isoDate(d) {
+  if (!d) return "";
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return String(d);
+  return dt.toISOString().slice(0, 10);
 }
 
-/**
- * === GITHUB FETCH ===
- */
-async function fetchJson(url) {
-  const res = await fetch(url, { headers: { "Accept": "application/vnd.github+json" } });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} für ${url}\n${text.slice(0, 200)}`);
+function parseLinkHeader(link) {
+  // https://docs.github.com uses RFC 5988 Link headers. We just need rel="next".
+  // Example: <...page=2>; rel="next", <...page=4>; rel="last"
+  const out = {};
+  if (!link) return out;
+  for (const part of link.split(",")) {
+    const m = part.match(/<([^>]+)>\s*;\s*rel="([^"]+)"/);
+    if (m) out[m[2]] = m[1];
   }
-  return res.json();
-}
-
-async function listYamlFiles() {
-  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(YAML_DIR)}?ref=${encodeURIComponent(BRANCH)}`;
-  const data = await fetchJson(url);
-
-  const files = (Array.isArray(data) ? data : [])
-    .filter(x => x && x.type === "file" && /\.(ya?ml)$/i.test(x.name))
-    .map(x => ({
-      name: x.name,
-      path: x.path,
-      download_url: x.download_url,
-      html_url: x.html_url
-    }));
-
-  return files;
-}
-
-async function loadYamlFile(file) {
-  const res = await fetch(file.download_url);
-  if (!res.ok) throw new Error(`Konnte ${file.name} nicht laden (HTTP ${res.status})`);
-  const text = await res.text();
-  const parsed = jsyaml.load(text) || {};
-
-  const labels = Array.isArray(parsed.labels) ? parsed.labels : (parsed.labels ? [parsed.labels] : []);
-  const link = parsed.link || parsed.url || parsed.html_url || file.html_url;
-
-  const yamlName = titleCase(yamlKlarname(file.name));
-
-  return {
-    title: parsed.title || parsed.name || yamlName,
-    yamlName,
-    yamlFile: file.name,          // <- exakter Dateiname
-    labels,
-    labelsText: labels.join(", "),
-    created: safeDate(parsed.created || parsed.created_at),
-    updated: safeDate(parsed.updated || parsed.updated_at),
-    link,
-
-    _file: file,
-    _raw: parsed
-  };
+  return out;
 }
 
 /**
- * === RENDERING, FILTER, SORT ===
+ * === FETCH ISSUES ===
+ */
+async function fetchIssuesAllPages({ state="all", perPage=100, includePRs=false } = {}) {
+  let url = `https://api.github.com/repos/${OWNER}/${REPO}/issues?state=${encodeURIComponent(state)}&per_page=${perPage}&page=1`;
+  const all = [];
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: {
+        "Accept": "application/vnd.github+json"
+      }
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status} beim Laden der Issues.\n${text.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+
+    // Issues API liefert auch PRs; PRs haben das Feld "pull_request". :contentReference[oaicite:1]{index=1}
+    for (const item of data) {
+      const isPR = !!item.pull_request;
+      if (!includePRs && isPR) continue;
+      all.push(item);
+    }
+
+    const links = parseLinkHeader(res.headers.get("Link"));
+    url = links.next || "";
+  }
+
+  return all;
+}
+
+/**
+ * === STATE / VIEW ===
  */
 let ALL = [];
 let VIEW = [];
-let sortKey = "updated";
+let sortKey = "updated_at";
 let sortDir = "desc";
+
+function buildLabelOptions() {
+  const labels = uniq(ALL.flatMap(it => (it.labels || []).map(l => l.name))).sort((a,b)=>a.localeCompare(b));
+  $("labels").innerHTML =
+    `<option value="">Alle Labels</option>` +
+    labels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
+}
 
 function applyFilters() {
   const q = $("q").value.trim().toLowerCase();
   const label = $("labels").value;
 
-  VIEW = ALL.filter(item => {
+  VIEW = ALL.filter(it => {
+    const labelsText = (it.labels || []).map(l => l.name).join(" ");
     const hay = [
-      item.title,
-      item.yamlName,
-      item.yamlFile,
-      item.labelsText,
-      item._file?.name,
-      item._file?.path
+      `#${it.number}`,
+      it.title,
+      it.state,
+      labelsText,
+      it.user?.login
     ].join(" ").toLowerCase();
 
     const okQ = !q || hay.includes(q);
-    const okL = !label || item.labels.includes(label);
+    const okL = !label || (it.labels || []).some(l => l.name === label);
     return okQ && okL;
   });
 
   applySort();
-  renderTable();
+  render();
   $("status").textContent = `${VIEW.length} / ${ALL.length}`;
 }
 
-function cmp(a, b) {
-  const va = (a?.[sortKey] ?? "").toString().toLowerCase();
-  const vb = (b?.[sortKey] ?? "").toString().toLowerCase();
+function compare(a, b) {
+  const vaRaw = a?.[sortKey];
+  const vbRaw = b?.[sortKey];
+
+  // number: numeric compare
+  if (sortKey === "number") {
+    const va = Number(vaRaw || 0), vb = Number(vbRaw || 0);
+    return sortDir === "asc" ? (va - vb) : (vb - va);
+  }
+
+  // dates sort lexicographically is fine (ISO). But API gives ISO strings; compare as strings.
+  const va = (vaRaw ?? "").toString().toLowerCase();
+  const vb = (vbRaw ?? "").toString().toLowerCase();
 
   if (va < vb) return sortDir === "asc" ? -1 : 1;
   if (va > vb) return sortDir === "asc" ? 1 : -1;
@@ -199,38 +203,36 @@ function cmp(a, b) {
 }
 
 function applySort() {
-  VIEW.sort(cmp);
+  VIEW.sort(compare);
   document.querySelectorAll("th .sort").forEach(el => el.textContent = "");
   const el = document.getElementById(`sort-${sortKey}`);
   if (el) el.textContent = sortDir === "asc" ? "▲" : "▼";
 }
 
-function renderTable() {
+function render() {
   const tbody = document.querySelector("#tbl tbody");
   tbody.innerHTML = "";
 
-  for (const item of VIEW) {
+  for (const it of VIEW) {
     const tr = document.createElement("tr");
-    const labelsHtml = item.labels.map(l => `<span class="pill">${escapeHtml(l)}</span>`).join("");
+    const labelsHtml = (it.labels || []).map(l => `<span class="pill">${escapeHtml(l.name)}</span>`).join("");
+    const isPR = !!it.pull_request;
 
     tr.innerHTML = `
-      <td>${escapeHtml(item.title)}</td>
-      <td class="muted">${escapeHtml(item.yamlName)}</td>
-      <td class="muted"><code>${escapeHtml(item.yamlFile || "")}</code></td>
+      <td class="muted">#${escapeHtml(it.number)}</td>
+      <td>
+        ${escapeHtml(it.title)}
+        ${isPR ? `<span class="pill muted" title="Pull Request">PR</span>` : ``}
+      </td>
+      <td class="muted">${escapeHtml(it.state)}</td>
       <td>${labelsHtml || "<span class='muted'>—</span>"}</td>
-      <td class="muted">${escapeHtml(item.created || "—")}</td>
-      <td class="muted">${escapeHtml(item.updated || "—")}</td>
-      <td><a href="${escapeHtml(item.link)}" target="_blank" rel="noopener">Link</a></td>
+      <td class="muted">${escapeHtml(it.user?.login || "—")}</td>
+      <td class="muted">${escapeHtml(isoDate(it.created_at) || "—")}</td>
+      <td class="muted">${escapeHtml(isoDate(it.updated_at) || "—")}</td>
+      <td><a href="${escapeHtml(it.html_url)}" target="_blank" rel="noopener">Link</a></td>
     `;
-
     tbody.appendChild(tr);
   }
-}
-
-function renderLabelFilterOptions() {
-  const labels = uniq(ALL.flatMap(x => x.labels)).sort((a,b)=>a.localeCompare(b));
-  const sel = $("labels");
-  sel.innerHTML = `<option value="">Alle Labels</option>` + labels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
 }
 
 /**
@@ -240,37 +242,42 @@ async function init() {
   $("msg").innerHTML = "";
   $("status").textContent = "Lade…";
 
+  const state = $("state").value;              // open|closed|all
+  const includePRs = $("includePRs").checked;  // optional
+
   try {
-    const files = await listYamlFiles();
-    if (!files.length) {
-      $("msg").innerHTML = `<div class="error">Keine YAML-Dateien gefunden in <code>${escapeHtml(YAML_DIR)}</code> (Branch: <code>${escapeHtml(BRANCH)}</code>).</div>`;
-      $("status").textContent = "0 / 0";
-      return;
-    }
+    // Hinweis: Unauthentifiziert ist GitHub API limitiert (Rate Limit). Bei vielen Reloads kann es kurz blocken.
+    const issues = await fetchIssuesAllPages({ state, includePRs, perPage: 100 });
 
-    const out = [];
-    const chunkSize = 8;
-    for (let i=0;i<files.length;i+=chunkSize) {
-      const part = await Promise.all(files.slice(i, i+chunkSize).map(loadYamlFile));
-      out.push(...part);
-    }
+    // Normalize for sorting/filtering convenience
+    ALL = issues.map(it => ({
+      ...it,
+      labelsText: (it.labels || []).map(l => l.name).join(", "),
+      user: it.user?.login || ""
+    }));
 
-    ALL = out;
-    renderLabelFilterOptions();
+    buildLabelOptions();
 
-    sortKey = "updated";
+    sortKey = "updated_at";
     sortDir = "desc";
 
     applyFilters();
-    $("status").textContent = `${VIEW.length} / ${ALL.length}`;
   } catch (err) {
-    $("msg").innerHTML = `<div class="error"><strong>Fehler:</strong><br><pre style="white-space:pre-wrap;margin:8px 0 0;">${escapeHtml(err.message || String(err))}</pre></div>`;
+    $("msg").innerHTML = `
+      <div class="error">
+        <strong>Fehler:</strong><br>
+        <pre style="white-space:pre-wrap;margin:8px 0 0;">${escapeHtml(err.message || String(err))}</pre>
+      </div>`;
     $("status").textContent = "Fehler";
   }
 }
 
 $("q").addEventListener("input", applyFilters);
 $("labels").addEventListener("change", applyFilters);
+
+// Wenn du "Alle/Offen/Geschlossen" umstellst: neu laden (weil das serverseitig gefiltert wird)
+$("state").addEventListener("change", init);
+$("includePRs").addEventListener("change", init);
 $("reload").addEventListener("click", init);
 
 document.querySelectorAll("th[data-key]").forEach(th => {
@@ -280,7 +287,7 @@ document.querySelectorAll("th[data-key]").forEach(th => {
     if (sortKey === key) sortDir = (sortDir === "asc") ? "desc" : "asc";
     else { sortKey = key; sortDir = "asc"; }
     applySort();
-    renderTable();
+    render();
   });
 });
 
@@ -288,3 +295,4 @@ init();
 </script>
 </body>
 </html>
+
