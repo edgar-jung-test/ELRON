@@ -24,7 +24,6 @@
     .muted { opacity: .75; }
     .error { padding: 12px; border: 1px solid #c33a; border-radius: 12px; }
     .right { margin-left:auto; }
-    code { font-size: 0.95em; }
   </style>
 </head>
 
@@ -58,7 +57,7 @@
         <th data-key="title">Titel <span class="sort" id="sort-title"></span></th>
         <th data-key="state">Status <span class="sort" id="sort-state"></span></th>
         <th data-key="labelsText">Labels <span class="sort" id="sort-labelsText"></span></th>
-        <th data-key="user">Autor <span class="sort" id="sort-user"></span></th>
+        <th data-key="userLogin">Autor <span class="sort" id="sort-userLogin"></span></th>
         <th data-key="created_at">Erstellt <span class="sort" id="sort-created_at"></span></th>
         <th data-key="updated_at">Aktualisiert <span class="sort" id="sort-updated_at"></span></th>
         <th>Link</th>
@@ -98,8 +97,6 @@ function isoDate(d) {
 }
 
 function parseLinkHeader(link) {
-  // https://docs.github.com uses RFC 5988 Link headers. We just need rel="next".
-  // Example: <...page=2>; rel="next", <...page=4>; rel="last"
   const out = {};
   if (!link) return out;
   for (const part of link.split(",")) {
@@ -118,9 +115,7 @@ async function fetchIssuesAllPages({ state="all", perPage=100, includePRs=false 
 
   while (url) {
     const res = await fetch(url, {
-      headers: {
-        "Accept": "application/vnd.github+json"
-      }
+      headers: { "Accept": "application/vnd.github+json" }
     });
 
     if (!res.ok) {
@@ -130,7 +125,7 @@ async function fetchIssuesAllPages({ state="all", perPage=100, includePRs=false 
 
     const data = await res.json();
 
-    // Issues API liefert auch PRs; PRs haben das Feld "pull_request". :contentReference[oaicite:1]{index=1}
+    // Achtung: /issues liefert auch PRs; PRs haben das Feld "pull_request"
     for (const item of data) {
       const isPR = !!item.pull_request;
       if (!includePRs && isPR) continue;
@@ -153,7 +148,8 @@ let sortKey = "updated_at";
 let sortDir = "desc";
 
 function buildLabelOptions() {
-  const labels = uniq(ALL.flatMap(it => (it.labels || []).map(l => l.name))).sort((a,b)=>a.localeCompare(b));
+  const labels = uniq(ALL.flatMap(it => (it.labels || []).map(l => l.name)))
+    .sort((a,b)=>a.localeCompare(b));
   $("labels").innerHTML =
     `<option value="">Alle Labels</option>` +
     labels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
@@ -170,7 +166,7 @@ function applyFilters() {
       it.title,
       it.state,
       labelsText,
-      it.user?.login
+      it.userLogin
     ].join(" ").toLowerCase();
 
     const okQ = !q || hay.includes(q);
@@ -187,13 +183,11 @@ function compare(a, b) {
   const vaRaw = a?.[sortKey];
   const vbRaw = b?.[sortKey];
 
-  // number: numeric compare
   if (sortKey === "number") {
     const va = Number(vaRaw || 0), vb = Number(vbRaw || 0);
     return sortDir === "asc" ? (va - vb) : (vb - va);
   }
 
-  // dates sort lexicographically is fine (ISO). But API gives ISO strings; compare as strings.
   const va = (vaRaw ?? "").toString().toLowerCase();
   const vb = (vbRaw ?? "").toString().toLowerCase();
 
@@ -226,7 +220,7 @@ function render() {
       </td>
       <td class="muted">${escapeHtml(it.state)}</td>
       <td>${labelsHtml || "<span class='muted'>—</span>"}</td>
-      <td class="muted">${escapeHtml(it.user?.login || "—")}</td>
+      <td class="muted">${escapeHtml(it.userLogin || "—")}</td>
       <td class="muted">${escapeHtml(isoDate(it.created_at) || "—")}</td>
       <td class="muted">${escapeHtml(isoDate(it.updated_at) || "—")}</td>
       <td><a href="${escapeHtml(it.html_url)}" target="_blank" rel="noopener">Link</a></td>
@@ -246,14 +240,13 @@ async function init() {
   const includePRs = $("includePRs").checked;  // optional
 
   try {
-    // Hinweis: Unauthentifiziert ist GitHub API limitiert (Rate Limit). Bei vielen Reloads kann es kurz blocken.
     const issues = await fetchIssuesAllPages({ state, includePRs, perPage: 100 });
 
-    // Normalize for sorting/filtering convenience
+    // normalize
     ALL = issues.map(it => ({
       ...it,
       labelsText: (it.labels || []).map(l => l.name).join(", "),
-      user: it.user?.login || ""
+      userLogin: it.user?.login || ""
     }));
 
     buildLabelOptions();
@@ -274,8 +267,6 @@ async function init() {
 
 $("q").addEventListener("input", applyFilters);
 $("labels").addEventListener("change", applyFilters);
-
-// Wenn du "Alle/Offen/Geschlossen" umstellst: neu laden (weil das serverseitig gefiltert wird)
 $("state").addEventListener("change", init);
 $("includePRs").addEventListener("change", init);
 $("reload").addEventListener("click", init);
@@ -295,4 +286,5 @@ init();
 </script>
 </body>
 </html>
+
 
